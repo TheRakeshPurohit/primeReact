@@ -1,11 +1,11 @@
 import React from 'react'
-import type {ComponentMeta, ComponentStory} from '@storybook/react'
+import type {Meta, StoryFn} from '@storybook/react'
 
 import Hidden from '.'
 import Text from '../Text'
 
 export default {
-  title: 'Drafts/Components/Hidden',
+  title: 'Experimental/Components/Hidden',
   parameters: {
     controls: {
       expanded: true,
@@ -24,7 +24,7 @@ export default {
       description: 'The viewport type where the content is hidden.',
     },
   },
-} as ComponentMeta<typeof Hidden>
+} as Meta<typeof Hidden>
 
 export const Default = () => (
   <>
@@ -35,6 +35,6 @@ export const Default = () => (
   </>
 )
 
-export const Playground: ComponentStory<typeof Hidden> = args => (
+export const Playground: StoryFn<typeof Hidden> = args => (
   <Hidden {...args}>The content is hidden when the viewport is {Array(args.when).join(',')}</Hidden>
 )

@@ -1,5 +1,5 @@
 import React from 'react'
-import type {ComponentMeta, Story} from '@storybook/react'
+import type {Meta, StoryFn} from '@storybook/react'
 import type {AvatarProps} from './Avatar'
 import Avatar, {DEFAULT_AVATAR_SIZE} from './Avatar'
 import {parseSizeFromArgs} from './storyHelpers'
@@ -7,7 +7,7 @@ import {parseSizeFromArgs} from './storyHelpers'
 export default {
   title: 'Components/Avatar',
   component: Avatar,
-} as ComponentMeta<typeof Avatar>
+} as Meta<typeof Avatar>
 
 type Args = {
   size?: number
@@ -16,14 +16,15 @@ type Args = {
   sizeAtWide?: number
 } & Omit<AvatarProps, 'size'>
 
-export const Default = () => <Avatar src="https://avatars.githubusercontent.com/u/92997159?v=4" />
+export const Default = () => <Avatar src="https://avatars.githubusercontent.com/u/7143434?v=4" />
 
-export const Playground: Story<Args> = args => {
+export const Playground: StoryFn<Args> = args => {
   return (
     <Avatar
       size={parseSizeFromArgs(args)}
       square={args.square}
-      src="https://avatars.githubusercontent.com/u/92997159?v=4"
+      src="https://avatars.githubusercontent.com/u/7143434?v=4"
+      alt="mona"
     />
   )
 }
@@ -57,12 +58,6 @@ Playground.argTypes = {
     },
   },
   alt: {
-    controls: false,
-    table: {
-      disable: true,
-    },
-  },
-  ref: {
     controls: false,
     table: {
       disable: true,

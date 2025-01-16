@@ -1,5 +1,5 @@
-import React from 'react'
-import type {Meta, Story} from '@storybook/react'
+import React, {useState} from 'react'
+import type {Meta, StoryFn} from '@storybook/react'
 import type {ComponentProps} from '../utils/types'
 import Pagination from './Pagination'
 
@@ -26,11 +26,23 @@ const parseShowPagesArg = (value: boolean | string) => {
   }
 }
 
-export const Default = () => (
-  <Pagination pageCount={15} currentPage={2} onPageChange={e => e.preventDefault()} showPages={{narrow: false}} />
-)
+export const Default = () => {
+  const [page, setPage] = useState(2)
 
-export const Playground: Story<ComponentProps<typeof Pagination>> = ({showPages, ...args}) => {
+  return (
+    <Pagination
+      pageCount={15}
+      currentPage={page}
+      onPageChange={(e, n) => {
+        e.preventDefault()
+        setPage(n)
+      }}
+      showPages={{narrow: false}}
+    />
+  )
+}
+
+export const Playground: StoryFn<ComponentProps<typeof Pagination>> = ({showPages, ...args}) => {
   return (
     <Pagination
       onPageChange={e => e.preventDefault()}

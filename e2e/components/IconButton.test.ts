@@ -308,4 +308,67 @@ test.describe('IconButton', () => {
       })
     }
   })
+  test.describe('Keybinding hint', () => {
+    for (const theme of themes) {
+      test.describe(theme, () => {
+        test('default @vrt', async ({page}) => {
+          await visit(page, {
+            id: 'components-iconbutton-features--keybinding-hint',
+            globals: {
+              colorScheme: theme,
+            },
+          })
+
+          // Default state
+          await page.keyboard.press('Tab') // focus on icon button
+          expect(await page.screenshot({animations: 'disabled'})).toMatchSnapshot(
+            `IconButton.Keybinding Hint.${theme}.png`,
+          )
+        })
+
+        test('axe @aat', async ({page}) => {
+          await visit(page, {
+            id: 'components-iconbutton-features--keybinding-hint',
+            globals: {
+              colorScheme: theme,
+            },
+          })
+          await page.keyboard.press('Tab') // focus on icon button
+          await expect(page).toHaveNoViolations()
+        })
+      })
+    }
+  })
+
+  test.describe('Keybinding hint on Description', () => {
+    for (const theme of themes) {
+      test.describe(theme, () => {
+        test('default @vrt', async ({page}) => {
+          await visit(page, {
+            id: 'components-iconbutton-features--keybinding-hint-on-description',
+            globals: {
+              colorScheme: theme,
+            },
+          })
+
+          // Default state
+          await page.keyboard.press('Tab') // focus on icon button
+          expect(await page.screenshot({animations: 'disabled'})).toMatchSnapshot(
+            `IconButton.Keybinding Hint on Description.${theme}.png`,
+          )
+        })
+
+        test('axe @aat', async ({page}) => {
+          await visit(page, {
+            id: 'components-iconbutton-features--keybinding-hint-on-description',
+            globals: {
+              colorScheme: theme,
+            },
+          })
+          await page.keyboard.press('Tab') // focus on icon button
+          await expect(page).toHaveNoViolations()
+        })
+      })
+    }
+  })
 })

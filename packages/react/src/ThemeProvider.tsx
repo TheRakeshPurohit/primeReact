@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom'
 import {ThemeProvider as SCThemeProvider} from 'styled-components'
 import defaultTheme from './theme'
 import deepmerge from 'deepmerge'
+import {useId} from './hooks'
+import {useSyncedState} from './hooks/useSyncedState'
 
 export const defaultColorMode = 'day'
 const defaultDayScheme = 'light'
@@ -39,9 +41,9 @@ const ThemeContext = React.createContext<{
 })
 
 // inspired from __NEXT_DATA__, we use application/json to avoid CSRF policy with inline scripts
-const getServerHandoff = () => {
+const getServerHandoff = (id: string) => {
   try {
-    const serverData = document.getElementById('__PRIMER_DATA__')?.textContent
+    const serverData = document.getElementById(`__PRIMER_DATA_${id}__`)?.textContent
     if (serverData) return JSON.parse(serverData)
   } catch (error) {
     // if document/element does not exist or JSON is invalid, supress error
@@ -61,12 +63,13 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<ThemeProviderProps>
   // Initialize state
   const theme = props.theme ?? fallbackTheme ?? defaultTheme
 
-  const {resolvedServerColorMode} = getServerHandoff()
+  const uniqueDataId = useId()
+  const {resolvedServerColorMode} = getServerHandoff(uniqueDataId)
   const resolvedColorModePassthrough = React.useRef(resolvedServerColorMode)
 
-  const [colorMode, setColorMode] = React.useState(props.colorMode ?? fallbackColorMode ?? defaultColorMode)
-  const [dayScheme, setDayScheme] = React.useState(props.dayScheme ?? fallbackDayScheme ?? defaultDayScheme)
-  const [nightScheme, setNightScheme] = React.useState(props.nightScheme ?? fallbackNightScheme ?? defaultNightScheme)
+  const [colorMode, setColorMode] = useSyncedState(props.colorMode ?? fallbackColorMode ?? defaultColorMode)
+  const [dayScheme, setDayScheme] = useSyncedState(props.dayScheme ?? fallbackDayScheme ?? defaultDayScheme)
+  const [nightScheme, setNightScheme] = useSyncedState(props.nightScheme ?? fallbackNightScheme ?? defaultNightScheme)
   const systemColorMode = useSystemColorMode()
   const resolvedColorMode = resolvedColorModePassthrough.current || resolveColorMode(colorMode, systemColorMode)
   const colorScheme = chooseColorScheme(resolvedColorMode, dayScheme, nightScheme)
@@ -99,21 +102,8 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<ThemeProviderProps>
         resolvedColorModePassthrough.current = null
       }
     },
-    [colorMode, systemColorMode],
+    [colorMode, systemColorMode, setColorMode],
   )
-
-  // Update state if props change
-  React.useEffect(() => {
-    setColorMode(props.colorMode ?? fallbackColorMode ?? defaultColorMode)
-  }, [props.colorMode, fallbackColorMode])
-
-  React.useEffect(() => {
-    setDayScheme(props.dayScheme ?? fallbackDayScheme ?? defaultDayScheme)
-  }, [props.dayScheme, fallbackDayScheme])
-
-  React.useEffect(() => {
-    setNightScheme(props.nightScheme ?? fallbackNightScheme ?? defaultNightScheme)
-  }, [props.nightScheme, fallbackNightScheme])
 
   return (
     <ThemeContext.Provider
@@ -135,7 +125,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<ThemeProviderProps>
         {props.preventSSRMismatch ? (
           <script
             type="application/json"
-            id="__PRIMER_DATA__"
+            id={`__PRIMER_DATA_${uniqueDataId}__`}
             dangerouslySetInnerHTML={{__html: JSON.stringify({resolvedServerColorMode: resolvedColorMode})}}
           />
         ) : null}

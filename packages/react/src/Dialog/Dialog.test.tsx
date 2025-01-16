@@ -1,10 +1,12 @@
 import React from 'react'
-import {render, waitFor} from '@testing-library/react'
+import {fireEvent, render, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {Dialog} from './Dialog'
 import MatchMediaMock from 'jest-matchmedia-mock'
 import {behavesAsComponent, checkExports} from '../utils/testing'
-import {axe} from 'jest-axe'
+import axe from 'axe-core'
+import {Button} from '../Button'
+import {FeatureFlags} from '../FeatureFlags'
 
 let matchMedia: MatchMediaMock
 
@@ -66,7 +68,40 @@ describe('Dialog', () => {
 
     await user.click(getByLabelText('Close'))
 
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalledWith('close-button')
+    expect(onClose).toHaveBeenCalledTimes(1) // Ensure it's not called with a backdrop gesture as well
+  })
+
+  it('calls `onClose` when clicking the backdrop', async () => {
+    const user = userEvent.setup()
+    const onClose = jest.fn()
+    const {getByRole} = render(<Dialog onClose={onClose}>Pay attention to me</Dialog>)
+
+    expect(onClose).not.toHaveBeenCalled()
+
+    const dialog = getByRole('dialog')
+    const backdrop = dialog.parentElement!
+    await user.click(backdrop)
+
+    expect(onClose).toHaveBeenCalledWith('escape')
+  })
+
+  it('does not call `onClose` when click was not originated from backdrop', async () => {
+    const onClose = jest.fn()
+
+    const {getByRole} = render(<Dialog onClose={onClose}>Pay attention to me</Dialog>)
+
+    expect(onClose).not.toHaveBeenCalled()
+
+    const dialog = getByRole('dialog')
+    const backdrop = dialog.parentElement!
+
+    fireEvent.mouseDown(dialog)
+    fireEvent.mouseUp(backdrop)
+    // trigger the click on the backdrop, mouseUp doesn't do it for us
+    fireEvent.click(backdrop)
+
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('calls `onClose` when keying "Escape"', async () => {
@@ -79,7 +114,7 @@ describe('Dialog', () => {
 
     await user.keyboard('{Escape}')
 
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalledWith('escape')
   })
 
   it('changes the <body> style for `overflow` if it is not set to "hidden"', () => {
@@ -100,7 +135,7 @@ describe('Dialog', () => {
 
   it('should have no axe violations', async () => {
     const {container} = render(<Dialog onClose={() => {}}>Pay attention to me</Dialog>)
-    const results = await axe(container)
+    const results = await axe.run(container)
     expect(results).toHaveNoViolations()
   })
 
@@ -124,4 +159,137 @@ describe('Dialog', () => {
     expect(getByRole('dialog')).toHaveAttribute('data-position-narrow', 'bottom')
     expect(getByRole('dialog')).toHaveAttribute('data-position-regular', 'center')
   })
+
+  it('automatically returns focus to the trigger element when the dialog closes', async () => {
+    const Fixture = () => {
+      const [isOpen, setIsOpen] = React.useState(false)
+
+      return (
+        <>
+          <Button onClick={() => setIsOpen(true)}>Open dialog</Button>
+          {isOpen && (
+            <Dialog title="title" onClose={() => setIsOpen(false)}>
+              body
+            </Dialog>
+          )}
+        </>
+      )
+    }
+
+    const {getByRole, getByLabelText, queryByRole} = render(<Fixture />)
+    const triggerButton = getByRole('button', {name: 'Open dialog'})
+
+    const user = userEvent.setup()
+    await user.tab() // tab into the story, this should focus on the first button
+    expect(triggerButton).toHaveFocus()
+
+    await user.click(triggerButton)
+    await waitFor(() => expect(getByRole('dialog')).toBeInTheDocument())
+
+    await user.click(getByLabelText('Close'))
+
+    expect(queryByRole('dialog')).toBeNull()
+    expect(triggerButton).toHaveFocus()
+  })
+
+  it('returns focus to the element passed in returnFocusRef when the dialog closes', async () => {
+    const Fixture = () => {
+      const [isOpen, setIsOpen] = React.useState(false)
+      const triggerRef = React.useRef<HTMLButtonElement>(null)
+
+      return (
+        <>
+          <Button variant="primary" onClick={() => setIsOpen(true)}>
+            Show dialog (button 1)
+          </Button>
+          <Button variant="primary" ref={triggerRef}>
+            return focus to (button 2)
+          </Button>
+
+          {isOpen && (
+            <Dialog title="title" onClose={() => setIsOpen(false)} returnFocusRef={triggerRef}>
+              body
+            </Dialog>
+          )}
+        </>
+      )
+    }
+
+    const {getByRole, getByLabelText} = render(<Fixture />)
+    const triggerButton = getByRole('button', {name: 'Show dialog (button 1)'})
+
+    const user = userEvent.setup()
+    await user.tab() // tab into the story, this should focus on the first button
+    expect(triggerButton).toHaveFocus()
+
+    await user.click(triggerButton)
+    await user.click(getByLabelText('Close'))
+
+    expect(getByRole('button', {name: 'return focus to (button 2)'})).toHaveFocus()
+  })
+
+  it('should support `className` on the Dialog element', async () => {
+    const Fixture = () => {
+      const [isOpen, setIsOpen] = React.useState(true)
+      const triggerRef = React.useRef<HTMLButtonElement>(null)
+
+      return (
+        <>
+          <Button variant="primary" onClick={() => setIsOpen(true)}>
+            Show dialog
+          </Button>
+          {isOpen && (
+            <Dialog title="title" onClose={() => setIsOpen(false)} returnFocusRef={triggerRef} className="custom-class">
+              body
+            </Dialog>
+          )}
+        </>
+      )
+    }
+
+    const FeatureFlagElement = () => {
+      return (
+        <FeatureFlags
+          flags={{
+            primer_react_css_modules_team: true,
+            primer_react_css_modules_staff: true,
+            primer_react_css_modules_ga: true,
+          }}
+        >
+          <Fixture />
+        </FeatureFlags>
+      )
+    }
+
+    const user = userEvent.setup()
+
+    let component = render(<Fixture />)
+    let triggerButton = component.getByRole('button', {name: 'Show dialog'})
+    await user.click(triggerButton)
+    expect(component.getByRole('dialog')).toHaveClass('custom-class')
+    component.unmount()
+
+    component = render(<FeatureFlagElement />)
+    triggerButton = component.getByRole('button', {name: 'Show dialog'})
+    await user.click(triggerButton)
+    expect(component.getByRole('dialog')).toHaveClass('custom-class')
+  })
+})
+
+it('automatically focuses the element that is specified as initialFocusRef', () => {
+  const initialFocusRef = React.createRef<HTMLAnchorElement>()
+  const {getByRole} = render(
+    <Dialog
+      initialFocusRef={initialFocusRef}
+      onClose={() => {}}
+      title="New issue"
+      renderBody={() => (
+        <a ref={initialFocusRef} href="https://github.com">
+          Item 1
+        </a>
+      )}
+    ></Dialog>,
+  )
+
+  expect(getByRole('link')).toHaveFocus()
 })

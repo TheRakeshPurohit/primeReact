@@ -2,7 +2,7 @@ import React from 'react'
 import {iterateFocusableElements} from '@primer/behaviors/utils'
 import {useMenuInitialFocus} from './useMenuInitialFocus'
 import {useMnemonics} from './useMnemonics'
-import type {MenuContextProps} from '../ActionMenu'
+import type {MenuCloseHandler} from '../ActionMenu'
 
 /**
  * Keyboard navigation is a mix of 4 hooks
@@ -13,14 +13,16 @@ import type {MenuContextProps} from '../ActionMenu'
  */
 export const useMenuKeyboardNavigation = (
   open: boolean,
-  onClose: MenuContextProps['onClose'],
-  containerRef: React.RefObject<HTMLElement>,
-  anchorRef: React.RefObject<HTMLElement>,
+  onClose: MenuCloseHandler | undefined,
+  containerRef?: React.RefObject<HTMLElement>,
+  anchorRef?: React.RefObject<HTMLElement>,
+  isSubmenu: boolean = false,
 ) => {
   useMenuInitialFocus(open, containerRef, anchorRef)
   useMnemonics(open, containerRef)
   useCloseMenuOnTab(open, onClose, containerRef, anchorRef)
   useMoveFocusToMenuItem(open, containerRef, anchorRef)
+  useCloseSubmenuOnArrow(open, isSubmenu, onClose, containerRef)
 }
 
 /**
@@ -29,13 +31,13 @@ export const useMenuKeyboardNavigation = (
  */
 const useCloseMenuOnTab = (
   open: boolean,
-  onClose: MenuContextProps['onClose'],
-  containerRef: React.RefObject<HTMLElement>,
-  anchorRef: React.RefObject<HTMLElement>,
+  onClose: MenuCloseHandler | undefined,
+  containerRef?: React.RefObject<HTMLElement>,
+  anchorRef?: React.RefObject<HTMLElement>,
 ) => {
   React.useEffect(() => {
-    const container = containerRef.current
-    const anchor = anchorRef.current
+    const container = containerRef?.current
+    const anchor = anchorRef?.current
 
     const handler = (event: KeyboardEvent) => {
       if (open && event.key === 'Tab') onClose?.('tab')
@@ -51,17 +53,40 @@ const useCloseMenuOnTab = (
 }
 
 /**
+ * Close submenu when left arrow key is pressed
+ */
+const useCloseSubmenuOnArrow = (
+  open: boolean,
+  isSubmenu: boolean,
+  onClose: MenuCloseHandler | undefined,
+  containerRef?: React.RefObject<HTMLElement>,
+) => {
+  React.useEffect(() => {
+    const container = containerRef?.current
+
+    const handler = (event: KeyboardEvent) => {
+      if (open && isSubmenu && event.key === 'ArrowLeft') onClose?.('arrow-left')
+    }
+
+    container?.addEventListener('keydown', handler)
+    return () => {
+      container?.removeEventListener('keydown', handler)
+    }
+  }, [open, onClose, containerRef, isSubmenu])
+}
+
+/**
  * When Arrow Keys are pressed and the focus is on the anchor,
  * focus should move to a menu item
  */
 const useMoveFocusToMenuItem = (
   open: boolean,
-  containerRef: React.RefObject<HTMLElement>,
-  anchorRef: React.RefObject<HTMLElement>,
+  containerRef?: React.RefObject<HTMLElement>,
+  anchorRef?: React.RefObject<HTMLElement>,
 ) => {
   React.useEffect(() => {
-    const container = containerRef.current
-    const anchor = anchorRef.current
+    const container = containerRef?.current
+    const anchor = anchorRef?.current
 
     const handler = (event: KeyboardEvent) => {
       if (!open || !container) return

@@ -32,7 +32,7 @@ When Primer team is ready to promote the newly developed component in the main b
 
 Here is a checklist for developers who are going through the promotion process. Although this is a step-by-step guide, it is not a strict process and please use this as a reference.
 
-Note: Component v1 is refered to the component that is going to be moved to the deprecated bundle and component v2 is the one that is going to be promoted to the main bundle.
+Note: Component v1 is referred to the component that is going to be moved to the deprecated bundle and component v2 is the one that is going to be promoted to the main bundle.
 
 #### Source Code
 
@@ -62,7 +62,7 @@ Note: Component v1 is refered to the component that is going to be moved to the 
   - [ ] Make sure to update the import code block. I.e. `import { ActionList } from "@primer/react/deprecated"`.
 
 - [ ] Move the new components docs from draft folder to the main docs folder `docs/content/` and update the title by removing `v2`, status as well as the storybook and the source code link.
-  - [ ] Make sure to update `jsx live drafts` -> `jsx live`
+  - [ ] Make sure to update `jsx live experimental` -> `jsx live`
   - [ ] Make sure to update the import code block. I.e. `import { ActionList } from "@primer/react"`.
   - [ ] Update the navigation on `docs/src/@primer/gatsby-theme-doctocat/nav.yml` accordingly.
 
@@ -83,7 +83,7 @@ Primer maintainers should reach out to #accessibility any time a component is pl
 ### Removing the deprecated component
 
 After about 6 months of living in the deprecated bundle, a component is retired/deleted from the codebase. This is also a breaking change and Primer team releases it in the upcoming major release.
-At this point, consumers are expected to plan migration work and Primer team annouces the deletion in Primer Changelog as they do for the deprecation.
+At this point, consumers are expected to plan migration work and Primer team announces the deletion in Primer Changelog as they do for the deprecation.
 
 ## FAQ
 

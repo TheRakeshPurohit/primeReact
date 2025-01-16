@@ -3,18 +3,43 @@ import {Avatar} from '..'
 import theme from '../theme'
 import {px, render, behavesAsComponent, checkExports} from '../utils/testing'
 import {render as HTMLRender} from '@testing-library/react'
-import {axe} from 'jest-axe'
+import axe from 'axe-core'
+import {FeatureFlags} from '../FeatureFlags'
 
 describe('Avatar', () => {
-  behavesAsComponent({Component: Avatar})
+  behavesAsComponent({
+    Component: Avatar,
+    options: {
+      skipAs: true,
+    },
+  })
 
   checkExports('Avatar', {
     default: Avatar,
   })
 
+  it('should support `className` on the outermost element', () => {
+    const Element = () => <Avatar src="primer.png" className={'test-class-name'} />
+    const FeatureFlagElement = () => {
+      return (
+        <FeatureFlags
+          flags={{
+            primer_react_css_modules_team: true,
+            primer_react_css_modules_staff: true,
+            primer_react_css_modules_ga: true,
+          }}
+        >
+          <Element />
+        </FeatureFlags>
+      )
+    }
+    expect(HTMLRender(<Element />).container.firstChild).toHaveClass('test-class-name')
+    expect(HTMLRender(<FeatureFlagElement />).container.firstChild).toHaveClass('test-class-name')
+  })
+
   it('should have no axe violations', async () => {
     const {container} = HTMLRender(<Avatar src="primer.png" />)
-    const results = await axe(container)
+    const results = await axe.run(container)
     expect(results).toHaveNoViolations()
   })
 

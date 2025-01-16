@@ -3,14 +3,31 @@
   "name": "UnderlineNav",
   "status": "beta",
   "a11yReviewed": true,
-  "stories": [],
-  "props": [
+  "stories": [
     {
-      "name": "afterSelect",
-      "type": "(event) => void",
-      "defaultValue": "",
-      "description": "The handler that gets called when a nav link child is selected"
+      "id": "components-underlinenav--default"
     },
+    {
+      "id": "components-underlinenav-features--default"
+    },
+    {
+      "id": "components-underlinenav-features--with-icons"
+    },
+    {
+      "id": "components-underlinenav-features--with-counter-labels"
+    },
+    {
+      "id": "components-underlinenav-features--overflow-template"
+    },
+    {
+      "id": "components-underlinenav-features--overflow-on-narrow-screen"
+    },
+    {
+      "id": "components-underlinenav-features--counters-loading-state"
+    }
+  ],
+  "importPath": "@primer/react",
+  "props": [
     {
       "name": "aria-label",
       "type": "string",
@@ -47,7 +64,7 @@
         },
         {
           "name": "counter",
-          "type": "number",
+          "type": "number | string",
           "defaultValue": "",
           "description": "The number to display in the counter label."
         },
