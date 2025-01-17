@@ -1,11 +1,16 @@
 import React, {forwardRef} from 'react'
 import type {IconProps} from '@primer/octicons-react'
 import Box from '../../Box'
-import type {ButtonProps} from '../../Button'
 import {Button, IconButton} from '../../Button'
-import Tooltip from '../../Tooltip/Tooltip'
+import {Tooltip} from '../../TooltipV2'
+import type {ButtonProps} from '../../Button'
 import type {BetterSystemStyleObject, SxProp} from '../../sx'
 import {merge} from '../../sx'
+import {clsx} from 'clsx'
+
+import styles from './TextInputInnerAction.module.css'
+import {useFeatureFlag} from '../../FeatureFlags'
+import {TEXT_INPUT_CSS_MODULES_FEATURE_FLAG} from './UnstyledTextInput'
 
 type TextInputActionProps = Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -32,6 +37,9 @@ const invisibleButtonStyleOverrides = {
   paddingBottom: '2px',
   paddingLeft: '4px',
   position: 'relative',
+  backgroundColor: 'transparent',
+  color: 'fg.subtle',
+  '&:hover, &:focus': {color: 'fg.default'},
 
   '&[data-component="IconButton"]': {
     width: 'var(--inner-action-size)',
@@ -61,7 +69,7 @@ const ConditionalTooltip: React.FC<
   <>
     {ariaLabel ? (
       <Tooltip
-        aria-label={ariaLabel}
+        text={ariaLabel}
         direction={tooltipDirection}
         sx={{
           /* inline-block is used to ensure the tooltip dimensions don't
@@ -79,38 +87,61 @@ const ConditionalTooltip: React.FC<
 
 const TextInputAction = forwardRef<HTMLButtonElement, TextInputActionProps>(
   (
-    {'aria-label': ariaLabel, tooltipDirection, children, icon, sx: sxProp, variant = 'invisible', ...rest},
+    {
+      'aria-label': ariaLabel,
+      'aria-labelledby': ariaLabelledBy,
+      tooltipDirection,
+      children,
+      icon,
+      sx: sxProp,
+      className,
+      variant = 'invisible',
+      ...rest
+    },
     forwardedRef,
   ) => {
-    const sx =
-      variant === 'invisible'
-        ? merge<BetterSystemStyleObject>(invisibleButtonStyleOverrides, sxProp || {})
-        : sxProp || {}
+    const enabled = useFeatureFlag(TEXT_INPUT_CSS_MODULES_FEATURE_FLAG)
+
+    const styleProps = enabled
+      ? {className: clsx(variant === 'invisible' && styles.Invisible, className), sx: sxProp || {}}
+      : {
+          className,
+          sx:
+            variant === 'invisible'
+              ? merge<BetterSystemStyleObject>(invisibleButtonStyleOverrides, sxProp || {})
+              : sxProp || {},
+        }
 
     if ((icon && !ariaLabel) || (!children && !ariaLabel)) {
       // eslint-disable-next-line no-console
       console.warn('Use the `aria-label` prop to provide an accessible label for assistive technology')
     }
 
+    const accessibleLabel = ariaLabel
+      ? {'aria-label': ariaLabel}
+      : ariaLabelledBy
+        ? {'aria-labelledby': ariaLabelledBy}
+        : {
+            'aria-label': '',
+          }
+
     return (
       <Box as="span" className="TextInput-action" marginLeft={1} marginRight={1} lineHeight="0">
-        {icon && !children ? (
-          <Tooltip direction={tooltipDirection} aria-label={ariaLabel}>
-            <IconButton
-              variant={variant}
-              type="button"
-              icon={icon}
-              size="small"
-              sx={sx}
-              {...rest}
-              aria-label={ariaLabel as unknown as string}
-              aria-labelledby={undefined}
-              ref={forwardedRef}
-            />
-          </Tooltip>
+        {icon && !children && ariaLabel ? (
+          <IconButton
+            {...accessibleLabel}
+            tooltipDirection={tooltipDirection ?? 's'}
+            variant={variant}
+            type="button"
+            icon={icon}
+            size="small"
+            {...styleProps}
+            {...rest}
+            ref={forwardedRef}
+          />
         ) : (
           <ConditionalTooltip aria-label={ariaLabel}>
-            <Button variant={variant} type="button" sx={sx} {...rest} ref={forwardedRef}>
+            <Button variant={variant} type="button" {...styleProps} {...rest} ref={forwardedRef}>
               {children}
             </Button>
           </ConditionalTooltip>

@@ -3,7 +3,8 @@ import Autocomplete from '../Autocomplete'
 import Box from '../Box'
 import Checkbox from '../Checkbox'
 import Radio from '../Radio'
-import Select from '../Select'
+import Select from '../Select/Select'
+import {SelectPanel} from '../SelectPanel'
 import TextInput from '../TextInput'
 import TextInputWithTokens from '../TextInputWithTokens'
 import Textarea from '../Textarea'
@@ -13,11 +14,12 @@ import {get} from '../constants'
 import {useSlots} from '../hooks/useSlots'
 import type {SxProp} from '../sx'
 import {useId} from '../hooks/useId'
-import FormControlCaption from './_FormControlCaption'
-import FormControlLabel from './_FormControlLabel'
-import FormControlLeadingVisual from './_FormControlLeadingVisual'
+import {FormControlCaption} from './FormControlCaption'
+import FormControlLabel from './FormControlLabel'
+import FormControlLeadingVisual from './FormControlLeadingVisual'
 import FormControlValidation from './_FormControlValidation'
 import {FormControlContextProvider} from './_FormControlContext'
+import {warning} from '../utils/warning'
 
 export type FormControlProps = {
   children?: React.ReactNode
@@ -38,17 +40,27 @@ export type FormControlProps = {
    * Vertical layout is used by default, and horizontal layout is used for checkbox and radio inputs.
    */
   layout?: 'horizontal' | 'vertical'
+  className?: string
 } & SxProp
 
 const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
-  ({children, disabled: disabledProp, layout = 'vertical', id: idProp, required, sx}, ref) => {
+  ({children, disabled: disabledProp, layout = 'vertical', id: idProp, required, sx, className}, ref) => {
     const [slots, childrenWithoutSlots] = useSlots(children, {
       caption: FormControlCaption,
       label: FormControlLabel,
       leadingVisual: FormControlLeadingVisual,
       validation: FormControlValidation,
     })
-    const expectedInputComponents = [Autocomplete, Checkbox, Radio, Select, TextInput, TextInputWithTokens, Textarea]
+    const expectedInputComponents = [
+      Autocomplete,
+      Checkbox,
+      Radio,
+      Select,
+      TextInput,
+      TextInputWithTokens,
+      Textarea,
+      SelectPanel,
+    ]
     const choiceGroupContext = useContext(CheckboxOrRadioGroupContext)
     const disabled = choiceGroupContext.disabled || disabledProp
     const id = useId(idProp)
@@ -61,26 +73,21 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
     const inputProps = React.isValidElement(InputComponent) && InputComponent.props
     const isChoiceInput =
       React.isValidElement(InputComponent) && (InputComponent.type === Checkbox || InputComponent.type === Radio)
+    const isRadioInput = React.isValidElement(InputComponent) && InputComponent.type === Radio
 
     if (InputComponent) {
-      if (inputProps?.id) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `instead of passing the 'id' prop directly to the input component, it should be passed to the parent component, <FormControl>`,
-        )
-      }
-      if (inputProps?.disabled) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `instead of passing the 'disabled' prop directly to the input component, it should be passed to the parent component, <FormControl>`,
-        )
-      }
-      if (inputProps?.required) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `instead of passing the 'required' prop directly to the input component, it should be passed to the parent component, <FormControl>`,
-        )
-      }
+      warning(
+        inputProps?.id,
+        `instead of passing the 'id' prop directly to the input component, it should be passed to the parent component, <FormControl>`,
+      )
+      warning(
+        inputProps?.disabled,
+        `instead of passing the 'disabled' prop directly to the input component, it should be passed to the parent component, <FormControl>`,
+      )
+      warning(
+        inputProps?.required,
+        `instead of passing the 'required' prop directly to the input component, it should be passed to the parent component, <FormControl>`,
+      )
     }
 
     if (!slots.label) {
@@ -91,24 +98,20 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
     }
 
     if (isChoiceInput) {
-      if (slots.validation) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'Validation messages are not rendered for an individual checkbox or radio. The validation message should be shown for all options.',
-        )
-      }
+      warning(
+        !!slots.validation,
+        'Validation messages are not rendered for an individual checkbox or radio. The validation message should be shown for all options.',
+      )
 
-      if (childrenWithoutSlots.find(child => React.isValidElement(child) && child.props?.required)) {
-        // eslint-disable-next-line no-console
-        console.warn('An individual checkbox or radio cannot be a required field.')
-      }
+      warning(
+        isRadioInput && childrenWithoutSlots.find(child => React.isValidElement(child) && child.props?.required),
+        'An individual radio cannot be a required field.',
+      )
     } else {
-      if (slots.leadingVisual) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'A leading visual is only rendered for a checkbox or radio form control. If you want to render a leading visual inside of your input, check if your input supports a leading visual.',
-        )
-      }
+      warning(
+        !!slots.leadingVisual,
+        'A leading visual is only rendered for a checkbox or radio form control. If you want to render a leading visual inside of your input, check if your input supports a leading visual.',
+      )
     }
 
     const isLabelHidden = slots.label?.props.visuallyHidden
@@ -124,18 +127,27 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
         }}
       >
         {isChoiceInput || layout === 'horizontal' ? (
-          <Box ref={ref} display="flex" alignItems={slots.leadingVisual ? 'center' : undefined} sx={sx}>
+          <Box
+            ref={ref}
+            display="flex"
+            alignItems={slots.leadingVisual ? 'center' : undefined}
+            sx={sx}
+            className={className}
+          >
             <Box sx={{'> input': {marginLeft: 0, marginRight: 0}}}>
               {React.isValidElement(InputComponent) &&
                 React.cloneElement(
                   InputComponent as React.ReactElement<{
                     id: string
                     disabled: boolean
+                    required: boolean
                     ['aria-describedby']: string
                   }>,
                   {
                     id,
                     disabled,
+                    // allow checkboxes to be required
+                    required: required && !isRadioInput,
                     ['aria-describedby']: captionId as string,
                   },
                 )}
@@ -160,17 +172,15 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
                 {slots.leadingVisual}
               </Box>
             )}
-            {!slots.label?.props.visuallyHidden || slots.caption ? (
-              <Box display="flex" flexDirection="column" ml={2}>
-                {slots.label}
-                {slots.caption}
-              </Box>
-            ) : (
-              <>
-                {slots.label}
-                {slots.caption}
-              </>
-            )}
+            <Box
+              sx={{
+                '> *': {paddingLeft: 'var(--stack-gap-condensed)'},
+                '> label': {fontWeight: 'var(--base-text-weight-normal)'},
+              }}
+            >
+              {slots.label}
+              {slots.caption}
+            </Box>
           </Box>
         ) : (
           <Box
@@ -179,6 +189,7 @@ const FormControl = React.forwardRef<HTMLDivElement, FormControlProps>(
             flexDirection="column"
             alignItems="flex-start"
             sx={{...(isLabelHidden ? {'> *:not(label) + *': {marginTop: 1}} : {'> * + *': {marginTop: 1}}), ...sx}}
+            className={className}
           >
             {slots.label}
             {React.isValidElement(InputComponent) &&

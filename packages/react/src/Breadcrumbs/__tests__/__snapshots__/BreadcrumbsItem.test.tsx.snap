@@ -9,7 +9,8 @@ exports[`Breadcrumbs.Item respects the "selected" prop 1`] = `
   text-decoration: none;
 }
 
-.c0:hover {
+.c0:hover,
+.c0:focus {
   -webkit-text-decoration: underline;
   text-decoration: underline;
 }
@@ -19,9 +20,13 @@ exports[`Breadcrumbs.Item respects the "selected" prop 1`] = `
   pointer-events: none;
 }
 
+.c0.selected:focus {
+  -webkit-text-decoration: none;
+  text-decoration: none;
+}
+
 <a
   aria-current="page"
   className="c0 selected"
-  selected={true}
 />
 `;

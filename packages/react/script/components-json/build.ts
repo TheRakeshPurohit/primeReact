@@ -2,8 +2,10 @@ import generate from '@babel/generator'
 import {parse} from '@babel/parser'
 import traverse from '@babel/traverse'
 import type {ArrowFunctionExpression, Identifier, FunctionDeclaration} from '@babel/types'
+import path from 'node:path'
+import {parseArgs} from 'node:util'
 import Ajv from 'ajv'
-import {pascalCase} from 'change-case'
+import {pascalCase, kebabCase} from 'change-case'
 import glob from 'fast-glob'
 import fs from 'fs'
 import keyBy from 'lodash.keyby'
@@ -11,17 +13,59 @@ import prettier from '@prettier/sync'
 import componentSchema from './component.schema.json'
 import outputSchema from './output.schema.json'
 
+const args = parseArgs({
+  options: {
+    'storybook-data': {
+      type: 'string',
+    },
+  },
+})
+
 // Only includes fields we use in this script
 type Component = {
   name: string
   status: 'draft' | 'experimental' | 'alpha' | 'beta' | 'stable' | 'deprecated'
+  importPath:
+    | '@primer/react'
+    | '@primer/react/next'
+    | '@primer/react/deprecated'
+    | '@primer/react/experimental'
+    | '@primer/react/drafts'
   stories: Array<{id: string; code?: string}>
+  source?: string
 }
 
 const ajv = new Ajv()
 
 // Get all JSON files matching `src/**/*.docs.json`
 const docsFiles = glob.sync('src/**/*.docs.json')
+
+// Get the story name prefix for the default story id
+const storyPrefix = {
+  draft: 'experimental-',
+  experimental: 'experimental-',
+  deprecated: 'deprecated-',
+  alpha: '',
+  beta: '',
+  stable: '',
+}
+
+let _storybookData: StorybookData | null = null
+
+function getStorybookData(): StorybookData {
+  const input = args.values['storybook-data']
+  if (!input) {
+    throw new Error('Unable to get value for --storybook-data')
+  }
+
+  if (_storybookData === null) {
+    const filepath = path.resolve(process.cwd(), args.values['storybook-data']!)
+    const contents = fs.readFileSync(filepath, 'utf-8')
+    _storybookData = JSON.parse(contents)
+  }
+
+  return _storybookData as StorybookData
+}
 
 const components = docsFiles.map(docsFilepath => {
   const docs = JSON.parse(fs.readFileSync(docsFilepath, 'utf-8'))
@@ -38,17 +82,12 @@ const components = docsFiles.map(docsFilepath => {
   // Example: src/components/Box/Box.docs.json -> src/components/Box/Box.stories.tsx
   const defaultStoryFilepath = docsFilepath.replace(/\.docs\.json$/, '.stories.tsx')
 
-  // Get the story name prefix for the default story id
-  const storyPrefix = {
-    draft: 'drafts-',
-    experimental: 'experimental-',
-    deprecated: 'deprecated-',
-    alpha: '',
-    beta: '',
-    stable: '',
-  }
+  const isComponentV2 = docs.importPath === '@primer/react/next'
+  const docsName = String(docs.name).toLowerCase()
+  const componentName = isComponentV2 ? `${docsName}v2` : docsName
+
   // Get the default story id
-  const defaultStoryId = `${storyPrefix[docs.status]}components-${String(docs.name).toLowerCase()}--default`
+  const defaultStoryId = `${storyPrefix[docs.status]}components-${componentName}--default`
 
   // Get source code for default story
   const {Default: defaultStoryCode} = getStorySourceCode(defaultStoryFilepath)
@@ -63,10 +102,19 @@ const components = docsFiles.map(docsFilepath => {
   const exampleStorySourceCode = getStorySourceCode(exampleStoryFilepath)
 
   // Populate source code for each feature story
-  const stories = docs.stories
+  // if stories are not defined in *.docs.json, fill feature stories as default
+  const stories = (docs.stories.length > 0 ? docs.stories : getStoryIds(docs, Object.keys(featureStorySourceCode)))
     // Filter out the default story
-    .filter(({id}) => id !== defaultStoryId)
+    .filter(({id}) => {
+      return id !== defaultStoryId
+    })
     .map(({id}) => {
+      if (id.endsWith('--default')) {
+        return {
+          id,
+          code: defaultStoryCode,
+        }
+      }
       const storyName = getStoryName(id)
       const code = id.includes('-features--') ? featureStorySourceCode[storyName] : exampleStorySourceCode[storyName]
 
@@ -84,14 +132,32 @@ const components = docsFiles.map(docsFilepath => {
 
   // Add default story to the beginning of the array
   if (defaultStoryCode) {
-    docs.stories.unshift({
-      id: defaultStoryId,
-      code: defaultStoryCode,
-    })
+    const hasDefaultStory = docs.stories.find(story => story.code === defaultStoryCode)
+    if (!hasDefaultStory) {
+      docs.stories.unshift({
+        id: defaultStoryId,
+        code: defaultStoryCode,
+      })
+    }
+  }
+
+  if (args.values['storybook-data']) {
+    const storybookData = getStorybookData()
+    for (const story of docs.stories) {
+      const match = Object.values(storybookData.entries).find(entry => {
+        return entry.id === story.id
+      })
+      if (!match) {
+        throw new Error(`Story "${story.id}" not found in storybook-data`)
+      }
+    }
   }
 
   // TODO: Provide default type and description for sx and ref props
-  return docs
+  return {
+    source: `https://github.com/primer/react/tree/main/packages/react/${docsFilepath.substring(0, docsFilepath.lastIndexOf('/'))}`,
+    ...docs,
+  }
 })
 
 const data = {schemaVersion: 2, components: keyBy(components, 'id')}
@@ -146,19 +212,35 @@ function getStorySourceCode(filepath: string) {
     ExportNamedDeclaration(path) {
       const varDeclaration = path.node.declaration
 
-      let id: Identifier
-      let func: ArrowFunctionExpression | FunctionDeclaration
+      let id: Identifier | null = null
+      let func: ArrowFunctionExpression | FunctionDeclaration | null = null
 
       if (varDeclaration?.type === 'VariableDeclaration') {
         id = varDeclaration.declarations[0].id as Identifier
         const init = varDeclaration.declarations[0].init
-        if (init?.type === 'ArrowFunctionExpression') func = init
-        else return // not a function = not story
+        if (init?.type === 'ArrowFunctionExpression') {
+          func = init
+        } else if (init?.type === 'ObjectExpression') {
+          const renderProperty = init.properties.find(property => {
+            if (property.type === 'ObjectProperty') {
+              if (property.key.type === 'Identifier') {
+                return property.key.name === 'render'
+              }
+            }
+            return false
+          })
+
+          if (renderProperty?.type === 'ObjectProperty' && renderProperty.value.type === 'ArrowFunctionExpression') {
+            func = renderProperty.value
+          }
+        }
       } else if (varDeclaration?.type === 'FunctionDeclaration') {
         id = varDeclaration.id as Identifier
         func = varDeclaration
-      } else {
-        return // not a function = not story
+      }
+
+      if (!id || !func) {
+        return
       }
 
       const code = prettier
@@ -183,4 +265,22 @@ function getStorySourceCode(filepath: string) {
 function getStoryName(id: string) {
   const parts = id.split('--')
   return pascalCase(parts[parts.length - 1])
+}
+
+function getStoryIds(docs: Component, storyNames: string[]) {
+  const ids = storyNames.map(
+    storyName =>
+      `${storyPrefix[docs.status]}components-${String(docs.name).toLowerCase()}-features--${kebabCase(storyName)}`,
+  )
+
+  return ids.map(id => ({id}))
+}
+
+interface StorybookData {
+  v: number
+  entries: {
+    [key: string]: {
+      id: string
+    }
+  }
 }

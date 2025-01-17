@@ -14,8 +14,7 @@ import {
   getFormControlArgsByChildComponent,
   getTextInputArgTypes,
 } from '../utils/story-helpers'
-import {within, userEvent} from '@storybook/testing-library'
-import {expect} from '@storybook/jest'
+import {within, userEvent, expect} from '@storybook/test'
 
 type AutocompleteOverlayArgs = ComponentProps<typeof Autocomplete.Overlay>
 type AutocompleteMenuArgs = ComponentProps<typeof Autocomplete.Menu>
@@ -28,6 +27,9 @@ const getArgsByChildComponent = ({
   emptyStateText,
   menuLoading,
   selectionVariant,
+
+  // Autocomplete.Input
+  openOnFocus,
 
   // Autocomplete.Overlay
   anchorSide,
@@ -65,6 +67,7 @@ any) => {
   }
   return {
     menuArgs: {emptyStateText, loading: menuLoading, selectionVariant},
+    inputArgs: {openOnFocus},
     overlayArgs: {anchorSide, height, maxHeight: overlayMaxHeight, width},
     textInputArgs,
     textInputWithTokensArgs: {
@@ -113,7 +116,7 @@ const autocompleteStoryMeta: Meta = {
         <ThemeProvider>
           <BaseStyles>
             <Box onKeyDownCapture={reportKey}>
-              <Box position="absolute" right={5} top={2}>
+              <Box as="p" position="absolute" right={5} top={2} id="key-press-label">
                 Last key pressed: {lastKey}
               </Box>
               <Box paddingTop={5}>
@@ -131,6 +134,7 @@ const autocompleteStoryMeta: Meta = {
     emptyStateText: 'No selectable options',
     menuLoading: false,
     selectionVariant: 'single',
+    openOnFocus: true,
     anchorSide: undefined,
     height: 'auto',
     overlayMaxHeight: undefined,
@@ -158,6 +162,16 @@ const autocompleteStoryMeta: Meta = {
       options: ['single', 'multiple'],
       table: {
         category: 'Autocomplete.Menu',
+      },
+    },
+
+    // Autocomplete.Input
+    openOnFocus: {
+      control: {
+        type: 'boolean',
+      },
+      table: {
+        category: 'Autocomplete.Input',
       },
     },
 
@@ -215,9 +229,25 @@ const autocompleteStoryMeta: Meta = {
   },
 } as Meta
 
-export const Default = (args: FormControlArgs<AutocompleteArgs>) => {
+export const Default = () => {
+  return (
+    <Box as="form" sx={{p: 3}} onSubmit={event => event.preventDefault()}>
+      <FormControl>
+        <FormControl.Label id="autocompleteLabel-default">Label</FormControl.Label>
+        <Autocomplete>
+          <Autocomplete.Input />
+          <Autocomplete.Overlay>
+            <Autocomplete.Menu selectedItemIds={[]} aria-labelledby="autocompleteLabel-default" items={items} />
+          </Autocomplete.Overlay>
+        </Autocomplete>
+      </FormControl>
+    </Box>
+  )
+}
+
+export const Playground = (args: FormControlArgs<AutocompleteArgs>) => {
   const {parentArgs, labelArgs, captionArgs, validationArgs} = getFormControlArgsByChildComponent(args)
-  const {menuArgs, overlayArgs, textInputArgs} = getArgsByChildComponent(args)
+  const {menuArgs, inputArgs, overlayArgs, textInputArgs} = getArgsByChildComponent(args)
   const isMultiselect = menuArgs.selectionVariant === 'multiple'
   const [selectedItemIds, setSelectedItemIds] = useState<Array<string>>([])
   const onSelectedChange = (newlySelectedItems: Datum | Datum[]) => {
@@ -228,12 +258,19 @@ export const Default = (args: FormControlArgs<AutocompleteArgs>) => {
     setSelectedItemIds(newlySelectedItems.map(item => item.id))
   }
 
+  const autocompleteInput = {...inputArgs, ...textInputArgs}
+  const formValidationId = 'validation-field'
   return (
-    <Box as="form" sx={{p: 3}}>
+    <Box as="form" sx={{p: 3}} onSubmit={event => event.preventDefault()}>
       <FormControl {...parentArgs}>
         <FormControl.Label id="autocompleteLabel" {...labelArgs} />
         <Autocomplete>
-          <Autocomplete.Input {...textInputArgs} size={textInputArgs.inputSize} data-testid="autocompleteInput" />
+          <Autocomplete.Input
+            aria-describedby={formValidationId}
+            {...autocompleteInput}
+            size={textInputArgs.inputSize}
+            data-testid="autocompleteInput"
+          />
           <Autocomplete.Overlay {...overlayArgs}>
             <Autocomplete.Menu
               items={items}
@@ -246,14 +283,14 @@ export const Default = (args: FormControlArgs<AutocompleteArgs>) => {
         </Autocomplete>
         {captionArgs.children && <FormControl.Caption {...captionArgs} />}
         {validationArgs.children && validationArgs.variant && (
-          <FormControl.Validation {...validationArgs} variant={validationArgs.variant} />
+          <FormControl.Validation id={formValidationId} {...validationArgs} variant={validationArgs.variant} />
         )}
       </FormControl>
     </Box>
   )
 }
 
-Default.play = async ({canvasElement}: {canvasElement: HTMLElement}) => {
+Playground.play = async ({canvasElement}: {canvasElement: HTMLElement}) => {
   const canvas = within(canvasElement)
   const inputBox = canvas.getByTestId('autocompleteInput')
   await userEvent.click(inputBox)

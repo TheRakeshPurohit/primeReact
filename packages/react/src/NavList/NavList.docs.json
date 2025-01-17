@@ -4,6 +4,7 @@
   "status": "alpha",
   "a11yReviewed": false,
   "stories": [],
+  "importPath": "@primer/react",
   "props": [
     {
       "name": "aria-label",
@@ -51,6 +52,12 @@
           "name": "defaultOpen",
           "type": "boolean",
           "description": "The open state of the item when it is initially rendered if the item has a SubNav."
+        },
+        {
+          "name": "inactiveText",
+          "type": "string",
+          "description": "Text to explain why this item is currently inactive and cannot be activated.",
+          "defaultValue": ""
         },
         {
           "name": "ref",
@@ -114,6 +121,52 @@
       "name": "NavList.Group",
       "props": [
         {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true,
+          "description": "A related set of NavList.Items",
+          "defaultValue": ""
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "description": "The text that gets rendered as the group's heading. Alternatively, you can pass the `NavList.GroupHeading` component as a child of `NavList.Group`.\n If both `title` and `NavList.GroupHeading` are passed, `NavList.GroupHeading` will be rendered as the heading."
+        },
+        {
+          "name": "sx",
+          "type": "SystemStyleObject"
+        },
+        {
+          "name": "ref",
+          "type": "React.RefObject<HTMLElement>"
+        }
+      ]
+    },
+    {
+      "name": "NavList.GroupHeading",
+      "props": [
+        {
+          "name": "auxiliaryText",
+          "type": "string",
+          "required": false,
+          "description": "Secondary text which provides additional information about a `Group`.",
+          "defaultValue": ""
+        },
+        {
+          "name": "variant",
+          "type": "'subtle' | 'filled'",
+          "required": false,
+          "description": "Style variations. Usage is discretionary.\n\n- `\"filled\"` - Superimposed on a background, offset from nearby content\n- `\"subtle\"` - Relatively less offset from nearby content",
+          "defaultValue": ""
+        },
+        {
+          "name": "visuallyHidden",
+          "type": "boolean",
+          "required": false,
+          "description": "",
+          "defaultValue": ""
+        },
+        {
           "name": "sx",
           "type": "SystemStyleObject"
         },
@@ -133,6 +186,37 @@
         {
           "name": "ref",
           "type": "React.RefObject<HTMLElement>"
+        }
+      ]
+    },
+    {
+      "name": "NavList.TrailingAction",
+      "props": [
+        {
+          "name": "as",
+          "type": "a | button",
+          "defaultValue": "button",
+          "required": false,
+          "description": "HTML element to render as."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "defaultValue": "",
+          "required": true,
+          "description": "Acccessible name for the control."
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "defaultValue": "",
+          "required": true,
+          "description": "Octicon to pass into IconButton. When this is not set, TrailingAction renders as a `Button` instead of an `IconButton`."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "description": "href when the TrailingAction is rendered as a link."
         }
       ]
     }

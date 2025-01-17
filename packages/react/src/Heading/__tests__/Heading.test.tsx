@@ -1,9 +1,10 @@
 import React from 'react'
 import {Heading} from '../..'
 import {render, behavesAsComponent, checkExports} from '../../utils/testing'
-import {render as HTMLRender} from '@testing-library/react'
-import {axe} from 'jest-axe'
+import {render as HTMLRender, screen} from '@testing-library/react'
+import axe from 'axe-core'
 import ThemeProvider from '../../ThemeProvider'
+import {FeatureFlags} from '../../FeatureFlags'
 
 const theme = {
   breakpoints: ['400px', '640px', '960px', '1280px'],
@@ -35,13 +36,32 @@ describe('Heading', () => {
     default: Heading,
   })
 
+  it('should support `className` on the outermost element', () => {
+    const Element = () => <Heading className={'test-class-name'} />
+    const FeatureFlagElement = () => {
+      return (
+        <FeatureFlags
+          flags={{
+            primer_react_css_modules_team: true,
+            primer_react_css_modules_staff: true,
+            primer_react_css_modules_ga: true,
+          }}
+        >
+          <Element />
+        </FeatureFlags>
+      )
+    }
+    expect(HTMLRender(<Element />).container.firstChild).toHaveClass('test-class-name')
+    expect(HTMLRender(<FeatureFlagElement />).container.firstChild).toHaveClass('test-class-name')
+  })
+
   it('renders <h2> by default', () => {
     expect(render(<Heading />).type).toEqual('h2')
   })
 
   it('should have no axe violations', async () => {
     const {container} = HTMLRender(<Heading>Hello</Heading>)
-    const results = await axe(container)
+    const results = await axe.run(container)
     expect(results).toHaveNoViolations()
   })
 
@@ -139,5 +159,27 @@ describe('Heading', () => {
         </ThemeProvider>,
       ),
     ).toHaveStyleRule('font-style', 'italic')
+  })
+
+  it('should only include css modules class', () => {
+    HTMLRender(<Heading>test</Heading>)
+    expect(screen.getByText('test')).toHaveClass('Heading')
+    // Note: this is the generated class name when styled-components is used
+    // for this component
+    expect(screen.getByText('test')).not.toHaveClass(/^Heading__StyledHeading/)
+  })
+
+  it('should support overrides with sx if provided', () => {
+    HTMLRender(
+      <Heading
+        sx={{
+          fontWeight: '900',
+        }}
+      >
+        test
+      </Heading>,
+    )
+
+    expect(screen.getByText('test')).toHaveStyle('font-weight: 900')
   })
 })

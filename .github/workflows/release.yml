@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -39,7 +39,7 @@ jobs:
         # Uses SHA for security hardening
         # Currently pointing at a commit for the v1.4.1 tag
         # Please keep this up-to-date if you're changing the SHA below
-        uses: changesets/action@e2f8e964d080ae97c874b19e27b12e0a8620fb6c
+        uses: changesets/action@c8bada60c408975afd1a20b3db81d6eee6789308
         with:
           title: Release tracking
           # This expects you to have a script called release which does a build for your packages and calls changeset publish
@@ -51,7 +51,7 @@ jobs:
   release-next-major:
     if: github.ref_name == 'next-major'
     name: Next major
-    uses: primer/.github/.github/workflows/release_with_app.yml@main
+    uses: primer/.github/.github/workflows/release_with_app.yml@v2.0.0
     with:
       title: Release tracking (next major)
     secrets:

@@ -1,8 +1,18 @@
-import {DiffAddedIcon, DiffModifiedIcon, DiffRemovedIcon, DiffRenamedIcon, FileIcon} from '@primer/octicons-react'
-import type {Meta, Story} from '@storybook/react'
+import {
+  DiffAddedIcon,
+  DiffModifiedIcon,
+  DiffRemovedIcon,
+  DiffRenamedIcon,
+  FileIcon,
+  GrabberIcon,
+  KebabHorizontalIcon,
+  IssueClosedIcon,
+  IssueOpenedIcon,
+} from '@primer/octicons-react'
+import type {Meta, StoryFn} from '@storybook/react'
 import React from 'react'
 import Box from '../Box'
-import {Button} from '../Button'
+import {Button, IconButton} from '../Button'
 import Octicon from '../Octicon'
 import type {SubTreeState} from './TreeView'
 import {TreeView} from './TreeView'
@@ -22,9 +32,9 @@ const meta: Meta = {
   ],
 }
 
-export const Files: Story = () => (
+export const Files: StoryFn = () => (
   <nav aria-label="Files">
-    <TreeView aria-label="Files">
+    <TreeView aria-label="Files" truncate={false}>
       <TreeView.Item id="src" defaultExpanded>
         <TreeView.LeadingVisual>
           <TreeView.DirectoryIcon />
@@ -99,10 +109,10 @@ export const Files: Story = () => (
   </nav>
 )
 
-export const FilesChanged: Story = () => {
+export const FilesChanged: StoryFn = () => {
   return (
     <nav aria-label="Files">
-      <TreeView aria-label="Files">
+      <TreeView aria-label="Files" truncate={false}>
         <TreeView.Item id="src" defaultExpanded>
           <TreeView.LeadingVisual>
             <TreeView.DirectoryIcon />
@@ -263,7 +273,7 @@ const intialTree: TreeItem[] = Array.from({length: 5}).map((_, i) => ({
   })),
 }))
 
-export const Controlled: Story = () => {
+export const Controlled: StoryFn = () => {
   const [currentPath, setCurrentPath] = React.useState<string[]>(['src', 'Avatar.tsx'])
   const [tree, setTree] = React.useState<TreeItem[]>(intialTree)
 
@@ -335,7 +345,7 @@ async function loadItems(responseTime: number) {
   return ['Avatar.tsx', 'Button.tsx', 'Checkbox.tsx']
 }
 
-export const AsyncSuccess: Story = args => {
+export const AsyncSuccess: StoryFn = args => {
   const [isLoading, setIsLoading] = React.useState(false)
   const [asyncItems, setAsyncItems] = React.useState<string[]>([])
 
@@ -397,10 +407,10 @@ export const AsyncSuccess: Story = args => {
 }
 
 AsyncSuccess.args = {
-  responseTime: 2000,
+  responseTime: 4000,
 }
 
-export const AsyncWithCount: Story = args => {
+export const AsyncWithCount: StoryFn = args => {
   const [isLoading, setIsLoading] = React.useState(false)
   const [asyncItems, setAsyncItems] = React.useState<string[]>([])
 
@@ -472,13 +482,15 @@ AsyncWithCount.argTypes = {
   },
 }
 
+AsyncWithCount.storyName = 'Async with count (skeleton nodes)'
+
 async function alwaysFails(responseTime: number) {
   await wait(responseTime)
   throw new Error('Failed to load items')
   return []
 }
 
-export const AsyncError: Story = args => {
+export const AsyncError: StoryFn = args => {
   const [isLoading, setIsLoading] = React.useState(false)
   const [asyncItems, setAsyncItems] = React.useState<string[]>([])
   const [error, setError] = React.useState<Error | null>(null)
@@ -567,8 +579,8 @@ AsyncError.args = {
   responseTime: 2000,
 }
 
-export const EmptyDirectories: Story = () => {
-  const [state, setState] = React.useState<SubTreeState>('loading')
+export const EmptyDirectories: StoryFn = () => {
+  const [state, setState] = React.useState<SubTreeState>('initial')
   const timeoutId = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   React.useEffect(() => {
@@ -585,6 +597,7 @@ export const EmptyDirectories: Story = () => {
       <TreeView.Item
         id="src"
         onExpandedChange={expanded => {
+          setState('loading')
           if (expanded) {
             timeoutId.current = setTimeout(() => {
               setState('done')
@@ -610,7 +623,7 @@ export const EmptyDirectories: Story = () => {
   )
 }
 
-export const NestedTrees: Story = () => {
+export const NestedTrees: StoryFn = () => {
   const [isLoading, setIsLoading] = React.useState(false)
   const [asyncItems, setAsyncItems] = React.useState<string[]>([])
 
@@ -688,7 +701,7 @@ export const NestedTrees: Story = () => {
   )
 }
 
-export const NestedScrollContainer: Story = () => {
+export const NestedScrollContainer: StoryFn = () => {
   return (
     <Box sx={{maxHeight: '50vh', overflow: 'auto'}}>
       <TreeView aria-label="Files">
@@ -720,7 +733,7 @@ export const NestedScrollContainer: Story = () => {
   )
 }
 
-export const StressTest: Story = () => {
+export const StressTest: StoryFn = () => {
   return (
     <TreeView aria-label="Files">
       {Array.from({length: 1000}).map((_, i) => (
@@ -745,7 +758,7 @@ export const StressTest: Story = () => {
   )
 }
 
-export const ContainIntrinsicSize: Story = () => {
+export const ContainIntrinsicSize: StoryFn = () => {
   return (
     <TreeView aria-label="Files">
       {Array.from({length: 10}).map((_, i) => (
@@ -770,10 +783,10 @@ export const ContainIntrinsicSize: Story = () => {
   )
 }
 
-export const InitialFocus: Story = () => (
+export const InitialFocus: StoryFn = () => (
   <div>
     <Button>Focusable element before TreeView</Button>
-    <TreeView aria-label="Test tree">
+    <TreeView aria-label="Test tree" truncate={false}>
       <TreeView.Item id="src" defaultExpanded>
         <TreeView.LeadingVisual>
           <TreeView.DirectoryIcon />
@@ -878,11 +891,11 @@ export const InitialFocus: Story = () => (
               </TreeView.Item>
             </TreeView.SubTree>
           </TreeView.Item>
-          <TreeView.Item id="src/ReallyLongFileNameThatShouldBeTruncated.tsx">
+          <TreeView.Item id="src/ReallyLongFileNameThatShouldNotBeTruncated.tsx">
             <TreeView.LeadingVisual>
               <FileIcon />
             </TreeView.LeadingVisual>
-            ReallyLongFileNameThatShouldBeTruncated.tsx
+            ReallyLongFileNameThatShouldNotBeTruncated.tsx
           </TreeView.Item>
         </TreeView.SubTree>
       </TreeView.Item>
@@ -891,7 +904,58 @@ export const InitialFocus: Story = () => (
   </div>
 )
 
-export const WithoutIndentation: Story = () => (
+export const FocusManagement: StoryFn = () => (
+  <div>
+    <Button>Focusable element before TreeView</Button>
+    <TreeView aria-label="Test tree">
+      <TreeView.Item id="src" defaultExpanded>
+        <TreeView.LeadingVisual>
+          <TreeView.DirectoryIcon />
+        </TreeView.LeadingVisual>
+        src
+        <TreeView.SubTree>
+          <TreeView.Item id="src/Avatar.tsx">
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Avatar.tsx
+            <IconButton
+              variant="invisible"
+              icon={KebabHorizontalIcon}
+              aria-label="Secondary actions"
+              aria-hidden
+              tabIndex={-1}
+            ></IconButton>
+          </TreeView.Item>
+          <TreeView.Item id="src/Button" defaultExpanded>
+            <TreeView.LeadingVisual>
+              <TreeView.DirectoryIcon />
+            </TreeView.LeadingVisual>
+            Button
+            <TreeView.SubTree>
+              <TreeView.Item id="src/Button/Button.tsx">
+                <TreeView.LeadingVisual>
+                  <FileIcon />
+                </TreeView.LeadingVisual>
+                Button.tsx
+                <IconButton
+                  variant="invisible"
+                  icon={KebabHorizontalIcon}
+                  aria-label="Secondary actions"
+                  aria-hidden
+                  tabIndex={-1}
+                ></IconButton>
+              </TreeView.Item>
+            </TreeView.SubTree>
+          </TreeView.Item>
+        </TreeView.SubTree>
+      </TreeView.Item>
+    </TreeView>
+    <Button>Focusable element after TreeView</Button>
+  </div>
+)
+
+export const WithoutIndentation: StoryFn = () => (
   <nav aria-label="Files changed">
     <TreeView aria-label="Files changed" flat>
       <TreeView.Item id="src" defaultExpanded>
@@ -899,33 +963,163 @@ export const WithoutIndentation: Story = () => (
           <TreeView.DirectoryIcon />
         </TreeView.LeadingVisual>
         src
-      </TreeView.Item>
-      <TreeView.Item id="src/Avatar.tsx">
-        <TreeView.LeadingVisual>
-          <FileIcon />
-        </TreeView.LeadingVisual>
-        Avatar.tsx
-        <TreeView.TrailingVisual>
-          <Octicon icon={DiffAddedIcon} color="success.fg" aria-label="Added" />
-        </TreeView.TrailingVisual>
-      </TreeView.Item>
-      <TreeView.Item id="src/Button.tsx" current>
-        <TreeView.LeadingVisual>
-          <FileIcon />
-        </TreeView.LeadingVisual>
-        Button.tsx
-        <TreeView.TrailingVisual>
-          <Octicon icon={DiffModifiedIcon} color="attention.fg" aria-label="Modified" />
-        </TreeView.TrailingVisual>
+        <TreeView.SubTree>
+          <TreeView.Item id="src/Avatar.tsx">
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Avatar.tsx
+            <TreeView.TrailingVisual label="Added">
+              <Octicon icon={DiffAddedIcon} color="success.fg" />
+            </TreeView.TrailingVisual>
+          </TreeView.Item>
+          <TreeView.Item id="src/Button.tsx" current>
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Button.tsx
+            <TreeView.TrailingVisual label="Modified">
+              <Octicon icon={DiffModifiedIcon} color="attention.fg" />
+            </TreeView.TrailingVisual>
+          </TreeView.Item>
+        </TreeView.SubTree>
       </TreeView.Item>
       <TreeView.Item id="package.json">
         <TreeView.LeadingVisual>
           <FileIcon />
         </TreeView.LeadingVisual>
         package.json
-        <TreeView.TrailingVisual>
-          <Octicon icon={DiffModifiedIcon} color="attention.fg" aria-label="Modified" />
+        <TreeView.TrailingVisual label="Modified">
+          <Octicon icon={DiffModifiedIcon} color="attention.fg" />
         </TreeView.TrailingVisual>
+      </TreeView.Item>
+    </TreeView>
+  </nav>
+)
+
+export const LeadingAction: StoryFn = () => {
+  return (
+    <TreeView aria-label="Issues">
+      <TreeView.Item id="item-0">
+        <TreeView.LeadingAction>
+          <IconButton icon={GrabberIcon} aria-label="Reorder item 1" variant="invisible" />
+        </TreeView.LeadingAction>
+        <TreeView.LeadingVisual label="Issue closed">
+          <Octicon icon={IssueClosedIcon} sx={{color: 'done.fg'}} />
+        </TreeView.LeadingVisual>
+        Item 1
+      </TreeView.Item>
+      <TreeView.Item id="item-2">
+        <TreeView.LeadingAction>
+          <IconButton icon={GrabberIcon} aria-label="Reorder item 2" variant="invisible" />
+        </TreeView.LeadingAction>
+        <TreeView.LeadingVisual label="Issue opened">
+          <Octicon icon={IssueOpenedIcon} sx={{color: 'open.fg'}} />
+        </TreeView.LeadingVisual>
+        Item 2
+        <TreeView.SubTree>
+          <TreeView.Item id="item-2-sub-task-1">
+            <TreeView.LeadingVisual label="Issue opened">
+              <Octicon icon={IssueOpenedIcon} sx={{color: 'open.fg'}} />
+            </TreeView.LeadingVisual>
+            sub task 1
+          </TreeView.Item>
+          <TreeView.Item id="item-2-sub-task-2">
+            <TreeView.LeadingVisual label="Issue opened">
+              <Octicon icon={IssueOpenedIcon} sx={{color: 'open.fg'}} />
+            </TreeView.LeadingVisual>
+            sub task 2
+          </TreeView.Item>
+        </TreeView.SubTree>
+      </TreeView.Item>
+      <TreeView.Item id="item-3">
+        <TreeView.LeadingAction>
+          <IconButton icon={GrabberIcon} aria-label="Reorder item 3" variant="invisible" />
+        </TreeView.LeadingAction>
+        <TreeView.LeadingVisual label="Issue opened">
+          <Octicon icon={IssueOpenedIcon} sx={{color: 'open.fg'}} />
+        </TreeView.LeadingVisual>
+        Item 3
+      </TreeView.Item>
+    </TreeView>
+  )
+}
+
+export const MultilineItems: StoryFn = () => (
+  <nav aria-label="Files changed">
+    <TreeView aria-label="Files changed" truncate={false}>
+      <TreeView.Item id="src" defaultExpanded>
+        <TreeView.LeadingVisual>
+          <TreeView.DirectoryIcon />
+        </TreeView.LeadingVisual>
+        this is a very long directory name that we have intentionally allowed to wrap over multiple lines to demonstrate
+        alignment
+        <TreeView.SubTree>
+          <TreeView.Item id="src/Avatar.tsx">
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Avatar.tsx
+            <TreeView.TrailingVisual label="Added">
+              <Octicon icon={DiffAddedIcon} color="success.fg" />
+            </TreeView.TrailingVisual>
+          </TreeView.Item>
+        </TreeView.SubTree>
+      </TreeView.Item>
+      <TreeView.Item id="src" defaultExpanded>
+        <TreeView.LeadingVisual>
+          <TreeView.DirectoryIcon />
+        </TreeView.LeadingVisual>
+        this is a medium directory name that we wrap over 2 lines to demonstrate alignment
+        <TreeView.TrailingVisual label="Added">
+          <Octicon icon={DiffAddedIcon} color="success.fg" />
+        </TreeView.TrailingVisual>
+        <TreeView.SubTree>
+          <TreeView.Item id="src/Avatar.tsx">
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Avatar.tsx
+            <TreeView.TrailingVisual label="Added">
+              <Octicon icon={DiffAddedIcon} color="success.fg" />
+            </TreeView.TrailingVisual>
+          </TreeView.Item>
+        </TreeView.SubTree>
+      </TreeView.Item>
+      <TreeView.Item id="src" defaultExpanded>
+        <TreeView.LeadingVisual>
+          <TreeView.DirectoryIcon />
+        </TreeView.LeadingVisual>
+        this is a very long directory name that we have intentionally NOT allowed to wrap over multiple lines to
+        demonstrate alignment
+        <TreeView.SubTree>
+          <TreeView.Item id="src/Avatar.tsx">
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Avatar.tsx
+            <TreeView.TrailingVisual label="Added">
+              <Octicon icon={DiffAddedIcon} color="success.fg" />
+            </TreeView.TrailingVisual>
+          </TreeView.Item>
+        </TreeView.SubTree>
+      </TreeView.Item>
+      <TreeView.Item id="src" defaultExpanded>
+        <TreeView.LeadingVisual>
+          <TreeView.DirectoryIcon />
+        </TreeView.LeadingVisual>
+        short name
+        <TreeView.SubTree>
+          <TreeView.Item id="src/Avatar.tsx">
+            <TreeView.LeadingVisual>
+              <FileIcon />
+            </TreeView.LeadingVisual>
+            Avatar.tsx
+            <TreeView.TrailingVisual label="Added">
+              <Octicon icon={DiffAddedIcon} color="success.fg" />
+            </TreeView.TrailingVisual>
+          </TreeView.Item>
+        </TreeView.SubTree>
       </TreeView.Item>
     </TreeView>
   </nav>

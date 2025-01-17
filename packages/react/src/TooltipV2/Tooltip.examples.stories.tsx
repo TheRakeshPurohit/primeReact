@@ -1,18 +1,9 @@
-import React from 'react'
-import {Button, IconButton, Breadcrumbs, ActionMenu, ActionList, NavList} from '..'
+import React, {useState, useCallback, useRef} from 'react'
+import {Button, IconButton, Breadcrumbs, ActionMenu, ActionList} from '..'
 import {PageHeader} from '../PageHeader'
 import {Tooltip} from './Tooltip'
-import {
-  GitBranchIcon,
-  KebabHorizontalIcon,
-  TriangleDownIcon,
-  CheckIcon,
-  PeopleIcon,
-  SmileyIcon,
-  EyeIcon,
-  CommentIcon,
-  XIcon,
-} from '@primer/octicons-react'
+import {Dialog} from '../experimental'
+import {GitBranchIcon, KebabHorizontalIcon, TriangleDownIcon, CheckIcon, XIcon} from '@primer/octicons-react'
 import {default as VisuallyHidden} from '../_VisuallyHidden'
 
 export default {
@@ -27,7 +18,7 @@ export const CustomId = () => (
 )
 
 export const FilesPage = () => (
-  <PageHeader>
+  <PageHeader role="banner" aria-label="Banner">
     <PageHeader.ContextArea>
       <PageHeader.ParentLink>Files</PageHeader.ParentLink>
       <PageHeader.ContextAreaActions>
@@ -58,7 +49,8 @@ export const FilesPage = () => (
           </ActionMenu.Anchor>
           <ActionMenu.Overlay width="medium">
             <ActionList>
-              <ActionList.Group title="Raw file content">
+              <ActionList.Group>
+                <ActionList.GroupHeading>Raw file content</ActionList.GroupHeading>
                 <ActionList.Item onSelect={() => alert('Download')}>Download</ActionList.Item>
               </ActionList.Group>
               <ActionList.Divider />
@@ -76,7 +68,8 @@ export const FilesPage = () => (
                 <ActionList.TrailingVisual>⌘⇧,</ActionList.TrailingVisual>
               </ActionList.Item>
               <ActionList.Divider />
-              <ActionList.Group title="View Options">
+              <ActionList.Group>
+                <ActionList.GroupHeading>View Options</ActionList.GroupHeading>
                 <ActionList.Item onSelect={() => alert('Show code folding buttons')}>
                   Show code folding buttons
                 </ActionList.Item>
@@ -112,7 +105,8 @@ export const FilesPage = () => (
           </ActionMenu.Anchor>
           <ActionMenu.Overlay width="medium">
             <ActionList>
-              <ActionList.Group title="Raw file content">
+              <ActionList.Group>
+                <ActionList.GroupHeading>Raw file content</ActionList.GroupHeading>
                 <ActionList.Item onSelect={() => alert('Download')}>Download</ActionList.Item>
               </ActionList.Group>
               <ActionList.Divider />
@@ -130,7 +124,8 @@ export const FilesPage = () => (
                 <ActionList.TrailingVisual>⌘⇧,</ActionList.TrailingVisual>
               </ActionList.Item>
               <ActionList.Divider />
-              <ActionList.Group title="View Options">
+              <ActionList.Group>
+                <ActionList.GroupHeading>View Options</ActionList.GroupHeading>
                 <ActionList.Item onSelect={() => alert('Show code folding buttons')}>
                   Show code folding buttons
                 </ActionList.Item>
@@ -156,33 +151,38 @@ FilesPage.parameters = {
   },
 }
 
-export const Hyperlist = () => (
-  <NavList>
-    <NavList.Item href="/assigned" aria-current="page">
-      <NavList.LeadingVisual>
-        <PeopleIcon />
-      </NavList.LeadingVisual>
-      Assigned to me
-    </NavList.Item>
-    <Tooltip text="Created by me ⌥ ⇧ 2" direction="n">
-      <NavList.Item href="/created">
-        <NavList.LeadingVisual>
-          <SmileyIcon />
-        </NavList.LeadingVisual>
-        Created by me
-      </NavList.Item>
-    </Tooltip>
-    <NavList.Item href="/mentioned">
-      <NavList.LeadingVisual>
-        <CommentIcon />
-      </NavList.LeadingVisual>
-      Mentioned
-    </NavList.Item>
-    <NavList.Item href="/recent-activity">
-      <NavList.LeadingVisual>
-        <EyeIcon />
-      </NavList.LeadingVisual>
-      Recent activity
-    </NavList.Item>
-  </NavList>
-)
+export const DialogTrigger = () => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [secondOpen, setSecondOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const onDialogClose = useCallback(() => setIsOpen(false), [])
+  const onSecondDialogClose = useCallback(() => setSecondOpen(false), [])
+  const openSecondDialog = useCallback(() => setSecondOpen(true), [])
+  return (
+    <>
+      <Tooltip text="Ready to merge">
+        <IconButton ref={buttonRef} onClick={() => setIsOpen(!isOpen)} icon={CheckIcon} aria-label="Merge" />
+      </Tooltip>
+      {isOpen && (
+        <Dialog
+          title="My Dialog"
+          onClose={onDialogClose}
+          footerButtons={[
+            {buttonType: 'default', content: 'Open Second Dialog', onClick: openSecondDialog},
+            {buttonType: 'danger', content: 'Delete the universe', onClick: onDialogClose},
+            {buttonType: 'primary', content: 'Proceed', onClick: openSecondDialog},
+          ]}
+        >
+          The icon button that triggers the dialog, takes the focus back when the dialog is closed however the the
+          tooltip is not shown again if the dialog is closed with a mouse. Because the tooltip is shown only on
+          focus-visible.
+          {secondOpen && (
+            <Dialog title="Inner dialog!" onClose={onSecondDialogClose} width="small">
+              Hello world
+            </Dialog>
+          )}
+        </Dialog>
+      )}
+    </>
+  )
+}
